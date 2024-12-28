@@ -1,5 +1,6 @@
 package main
 
+<<<<<<< HEAD
 import (
 	"fmt"
 	"log/slog"
@@ -112,4 +113,11 @@ func main() {
 			}
 		}
 	}
+=======
+import "fmt"
+
+func main() {
+	fmt.Println("hello world")
+
+>>>>>>> dab68dac34cd2bcf5e73bee314dfa008a33bbf58
 }
