@@ -1,5 +1,6 @@
 package main
 
+
 import (
 	"bufio"
 	"bytes"
@@ -8,18 +9,9 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
-	"os"
 
-	"golang.org/x/sys/unix"
-)
 
 const maxEvents = 1024
-
-var proxymap = make(map[int]int)
-var upstreamServer = "localhost:8080"
-
-type proxy struct {
-}
 
 func main() {
 	if len(os.Args) < 2 {
@@ -165,4 +157,20 @@ func main() {
 			}
 		}
 	}
-}
+
+						// Send "Hello, world!" to the TCP connection
+						message := fmt.Sprintf("Hello, world! \n and req handeld by worker %d \n", workerID)
+						_, err = unix.Write(receivedFD, []byte(message))
+						if err != nil {
+							slog.Error("error writing to received file descriptor", err)
+							return
+						}
+
+						fmt.Printf("Sent message to TCP connection: %s\n", message)
+					}
+				}
+
+			}
+		}
+	}
+
