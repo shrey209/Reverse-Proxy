@@ -1,14 +1,15 @@
 package main
 
-<<<<<<< HEAD
+
 import (
+	"bufio"
+	"bytes"
 	"fmt"
+	"log"
 	"log/slog"
 	"net"
-	"os"
+	"net/http"
 
-	"golang.org/x/sys/unix"
-)
 
 const maxEvents = 1024
 
@@ -98,6 +99,65 @@ func main() {
 						receivedFD := fds[0]
 						slog.Info("Received file descriptor", "fd", receivedFD)
 
+						//subscribe to epoll
+						connEvent := &unix.EpollEvent{Events: unix.EPOLLIN, Fd: int32(receivedFD)}
+						if err := unix.EpollCtl(epfd, unix.EPOLL_CTL_ADD, int(receivedFD), connEvent); err != nil {
+							slog.Error("failed to add connection to epoll", err)
+							conn.Close()
+						}
+						slog.Info("new connection accepted", "address", conn.RemoteAddr().String())
+					}
+				}
+
+			} else {
+				log.Println(" the http proxy fd is :- %d", fd)
+				buffer := make([]byte, 1024)
+				n, err := unix.Read(fd, buffer)
+				if err != nil {
+					slog.Error("some error occured")
+				}
+				str := string(buffer[:n])
+
+				reader := bytes.NewReader([]byte(str))
+				req, err := http.ReadRequest(bufio.NewReader(reader))
+				if err != nil {
+					fmt.Println("Error parsing request:", err)
+					return
+				}
+				req.URL.Scheme = "http"
+				req.URL.Host = "localhost:8000"
+				req.RequestURI = ""
+				req.Header.Del("Connection")
+
+				conn, err = net.Dial("tcp", "localhost:8000")
+				if err != nil {
+					log.Fatal("Error connecting to upstream server:", err)
+				}
+
+				err = req.Write(conn)
+				if err != nil {
+					log.Fatalf("Failed to write request to upstream server: %v", err)
+				}
+
+				response, err := http.ReadResponse(bufio.NewReader(conn), req)
+				if err != nil {
+					log.Fatalf("Failed to read response from upstream server: %v", err)
+				}
+
+				var responseBuffer bytes.Buffer
+				err = response.Write(&responseBuffer)
+				if err != nil {
+					log.Fatalf("Failed to serialize response: %v", err)
+				}
+				_, err = unix.Write(fd, responseBuffer.Bytes())
+				if err != nil {
+					println("error occured on writing ")
+				}
+				unix.Close(fd)
+			}
+		}
+	}
+
 						// Send "Hello, world!" to the TCP connection
 						message := fmt.Sprintf("Hello, world! \n and req handeld by worker %d \n", workerID)
 						_, err = unix.Write(receivedFD, []byte(message))
@@ -113,11 +173,4 @@ func main() {
 			}
 		}
 	}
-=======
-import "fmt"
 
-func main() {
-	fmt.Println("hello world")
-
->>>>>>> dab68dac34cd2bcf5e73bee314dfa008a33bbf58
-}

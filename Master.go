@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"net"
-<<<<<<< HEAD
 	"os"
 	"os/exec"
 
@@ -33,6 +32,23 @@ func (ReverseProxy *ReverseProxy) spawnWorker(workerID int) {
 		log.Fatalf("Failed to create Unix socket: %v", err)
 	}
 
+
+	// Set buffer size for the listener
+	file, err := listener.(*net.UnixListener).File()
+	if err != nil {
+		log.Fatalf("Failed to get Unix socket file descriptor: %v", err)
+	}
+	defer file.Close()
+
+	fd := int(file.Fd())
+	if err := unix.SetsockoptInt(fd, unix.SOL_SOCKET, unix.SO_SNDBUF, 212992); err != nil {
+		log.Fatalf("Failed to set send buffer size: %v", err)
+	}
+	if err := unix.SetsockoptInt(fd, unix.SOL_SOCKET, unix.SO_RCVBUF, 212992); err != nil {
+		log.Fatalf("Failed to set receive buffer size: %v", err)
+	}
+
+
 	cmd := exec.Command("go", "run", "Worker.go", fmt.Sprintf("%d", workerID))
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -49,7 +65,7 @@ func (ReverseProxy *ReverseProxy) spawnWorker(workerID int) {
 
 	ReverseProxy.connections = append(ReverseProxy.connections, &conn)
 	log.Println("Worker connected.")
-=======
+
 	"net/url"
 	"os/exec"
 	"syscall"
@@ -97,12 +113,12 @@ func (ReverseProxy *ReverseProxy) spawnWorker(workerID int) {
 
 	// Log worker creation
 	log.Printf("Worker %d started and listening on UDS %s\n", workerID, udsPath)
->>>>>>> dab68dac34cd2bcf5e73bee314dfa008a33bbf58
+
 }
 
 func (ReverseProxy *ReverseProxy) CreateWorkers() {
 	for i := 1; i <= ReverseProxy.NumWorkers; i++ {
-<<<<<<< HEAD
+
 		ReverseProxy.spawnWorker(i)
 	}
 	log.Print("All workers spawned successfully")
@@ -112,13 +128,15 @@ func main() {
 	proxy := ReverseProxy{
 		Port:           ":8080",
 		RequestTimeout: 30,
-		NumWorkers:     2,
+
+		NumWorkers:     1,
+
 	}
 
 	proxy.CreateWorkers()
 
 	listener, err := net.Listen("tcp", ":8080")
-=======
+
 		ReverseProxy.spawnWorker(i) // Call spawnWorkers with a unique workerID
 	}
 	log.Print("all workers spawned succesfully")
@@ -141,7 +159,7 @@ func main() {
 		NumWorkers:      5,
 	}
 	listener, err := net.Listen("tcp", proxy.Port)
->>>>>>> dab68dac34cd2bcf5e73bee314dfa008a33bbf58
+
 	if err != nil {
 		log.Fatalf("Error starting TCP listener: %v", err)
 	}
@@ -149,18 +167,14 @@ func main() {
 
 	fmt.Println("Listening on port 8080...")
 
-<<<<<<< HEAD
-=======
-	con := 0
 
->>>>>>> dab68dac34cd2bcf5e73bee314dfa008a33bbf58
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
 			log.Printf("Error accepting connection: %v", err)
 			continue
 		}
-<<<<<<< HEAD
+
 		tcpConn, ok := conn.(*net.TCPConn)
 		if !ok {
 			fmt.Println("Not a TCP connection")
@@ -172,7 +186,7 @@ func main() {
 		if err != nil {
 			fmt.Println("Error getting file descriptor:", err)
 			conn.Close()
-=======
+
 		uc, ok := conn.(*net.UnixConn)
 		if !ok {
 			log.Printf("Failed to convert connection to UnixConn")
@@ -182,13 +196,13 @@ func main() {
 		file, err := uc.File()
 		if err != nil {
 			log.Printf("Error getting file descriptor: %v", err)
->>>>>>> dab68dac34cd2bcf5e73bee314dfa008a33bbf58
+
 			continue
 		}
 		defer file.Close()
 
 		fd := file.Fd()
-<<<<<<< HEAD
+
 		log.Printf("File descriptor fd of this TCP connection: %d", fd)
 
 		proxy.sendFileDescriptor(fd)
@@ -212,7 +226,7 @@ func (ReverseProxy *ReverseProxy) sendFileDescriptor(fd uintptr) {
 	}
 
 	ReverseProxy.index = (ReverseProxy.index + 1) % len(ReverseProxy.connections)
-=======
+
 
 		err = sendFileDescriptor(fd, fmt.Sprintf("/tmp/reverseproxy_worker_%d.sock", con%proxy.NumWorkers))
 		if err != nil {
@@ -240,5 +254,5 @@ func sendFileDescriptor(fd uintptr, udsPath string) error {
 	}
 
 	return nil
->>>>>>> dab68dac34cd2bcf5e73bee314dfa008a33bbf58
+
 }
